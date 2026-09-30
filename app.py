@@ -24,15 +24,33 @@ st.set_page_config(
 )
 
 
+def get_api_key() -> str | None:
+    """Read the API key from Streamlit secrets or the local environment."""
+    # Streamlit Cloud stores secrets in st.secrets. Local development can use .env.
+    try:
+        secret_key = st.secrets.get("OPENAI_API_KEY")
+        if secret_key:
+            return str(secret_key).strip()
+    except Exception:
+        # st.secrets may be unavailable during some local configurations.
+        pass
+
+    env_key = os.getenv("OPENAI_API_KEY")
+    if env_key:
+        return env_key.strip()
+
+    return None
+
+
 def get_client() -> OpenAI:
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = get_api_key()
     if not api_key:
         raise RuntimeError(
-            "OPENAI_API_KEY is not configured. Create a .env file from .env.example and add your API key."
+            "OpenAI API key is missing. On Streamlit Cloud, open your app's "
+            "Settings → Secrets and add: OPENAI_API_KEY = \"your_api_key_here\". "
+            "For local use, add OPENAI_API_KEY to a .env file."
         )
     return OpenAI(api_key=api_key)
-
-
 def build_edit_prompt(user_prompt: str) -> str:
     return f"""
 Edit the provided input image according to the user's instructions below.
